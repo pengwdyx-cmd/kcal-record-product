@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320" role="img" aria-label="本地演示用的餐食示意图（非真实照片）">
+  <rect width="320" height="320" fill="#E8EDE6"/>
+  <rect x="0" y="0" width="320" height="320" fill="#F3EBD9" opacity="0.35"/>
+  <circle cx="160" cy="160" r="132" fill="#FFFFFF"/>
+  <circle cx="160" cy="160" r="112" fill="#F7FAF7" stroke="#DDE6DE" stroke-width="2"/>
+  <!-- 米饭 -->
+  <path d="M96 168 a64 52 0 0 1 128 0 z" fill="#FBF7EE" stroke="#E3DAC5" stroke-width="2"/>
+  <circle cx="126" cy="146" r="4" fill="#EFE7D6"/>
+  <circle cx="150" cy="136" r="4" fill="#EFE7D6"/>
+  <circle cx="178" cy="142" r="4" fill="#EFE7D6"/>
+  <circle cx="200" cy="152" r="4" fill="#EFE7D6"/>
+  <!-- 炸鱿鱼须 -->
+  <g fill="#D9A25F" stroke="#B8813F" stroke-width="2" stroke-linecap="round">
+    <path d="M96 204 q16 -22 34 -8 q12 10 2 24 q-18 14 -36 -2 z"/>
+    <path d="M136 210 q18 -24 38 -8 q12 12 0 26 q-20 12 -38 -4 z"/>
+    <path d="M180 204 q18 -20 36 -4 q10 12 -2 24 q-20 12 -34 -6 z"/>
+    <path d="M112 232 q18 -16 34 -4 q10 10 -2 20 q-18 10 -32 -6 z"/>
+    <path d="M160 238 q18 -16 34 -4 q10 10 -2 20 q-18 10 -32 -6 z"/>
+  </g>
+  <!-- 点缀 -->
+  <g fill="#6F9B7B">
+    <circle cx="118" cy="196" r="6"/>
+    <circle cx="202" cy="196" r="5"/>
+    <circle cx="158" cy="252" r="5"/>
+  </g>
+  <text x="160" y="306" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="12" fill="#829087">本地 demo 示意图 · 接入后由 meal_image 提供真实餐图</text>
+</svg>

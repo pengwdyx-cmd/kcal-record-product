@@ -1,0 +1,9 @@
+{
+  "buildCommand": "next build --webpack",
+  "installCommand": "pnpm install",
+  "regions": ["hkg1"],
+  "functions": {
+    "src/app/api/coze/workflow1/route.ts": { "maxDuration": 300 },
+    "src/app/api/coze/workflow2/route.ts": { "maxDuration": 300 }
+  }
+}
