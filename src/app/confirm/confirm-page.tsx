@@ -26,6 +26,7 @@ import {
   type Workflow2RouteError,
   isWorkflow2RouteError,
 } from './confirm-data';
+import { appendCozeRun } from '@/lib/coze-runs';
 
 /* ================================================================== */
 /*  Props：数据由 confirm/page.tsx（数据接入点）注入                    */
@@ -320,6 +321,7 @@ export default function ConfirmPage({
     setWorkflow2Error('');
     setAllFailedReasons([]);
     setShowDataPreview(false);
+    const runStartedAt = Date.now();
 
     try {
       const response = await fetch('/api/coze/workflow2', {
@@ -339,6 +341,12 @@ export default function ConfirmPage({
       if (!response.ok || isWorkflow2RouteError(payload)) {
         const err = payload as Workflow2RouteError;
         const message = err.error || `请求失败（HTTP ${response.status}）`;
+        appendCozeRun(2, {
+          time: new Date().toISOString(),
+          stage: 'error',
+          error: message,
+          elapsed_ms: Date.now() - runStartedAt,
+        });
         setWorkflow2Error(message);
         setToastMessage(message);
         setShowToast(true);
@@ -400,6 +408,15 @@ export default function ConfirmPage({
           },
           meal_image: currentMealImage,
         };
+        appendCozeRun(2, {
+          time: new Date().toISOString(),
+          stage: 'success',
+          code: result.code,
+          ...(result.msg ? { msg: result.msg } : {}),
+          elapsed_ms: Date.now() - runStartedAt,
+          ...(result.execute_id ? { execute_id: result.execute_id } : {}),
+          ...(result.debug_url ? { debug_url: result.debug_url } : {}),
+        });
         try {
           sessionStorage.setItem(
             RESULT_STORAGE_KEY,
@@ -423,6 +440,15 @@ export default function ConfirmPage({
       const message = result.msg
         ? `计算未成功：code=${result.code} · ${result.msg}`
         : `计算未成功：code=${result.code}`;
+      appendCozeRun(2, {
+        time: new Date().toISOString(),
+        stage: 'error',
+        code: result.code,
+        ...(result.msg ? { msg: result.msg } : {}),
+        elapsed_ms: Date.now() - runStartedAt,
+        ...(result.execute_id ? { execute_id: result.execute_id } : {}),
+        ...(result.debug_url ? { debug_url: result.debug_url } : {}),
+      });
       setWorkflow2Error(message);
       setToastMessage(message);
       setShowToast(true);
@@ -431,6 +457,12 @@ export default function ConfirmPage({
     } catch (err) {
       const message =
         err instanceof Error ? `提交失败：${err.message}` : '提交失败：未知错误';
+      appendCozeRun(2, {
+        time: new Date().toISOString(),
+        stage: 'error',
+        error: message,
+        elapsed_ms: Date.now() - runStartedAt,
+      });
       setWorkflow2Error(message);
       setToastMessage(message);
       setShowToast(true);

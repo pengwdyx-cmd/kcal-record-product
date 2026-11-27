@@ -8,6 +8,7 @@ import {
   type ConfirmPageInput,
   type Workflow1RouteResponse,
 } from './confirm/confirm-data';
+import { appendCozeRun } from '@/lib/coze-runs';
 
 /** 每日目标热量的默认值与输入边界（仅用于本页输入控件，不是确认页写死值） */
 const DEFAULT_DAILY_TARGET_KCAL = 2000;
@@ -147,6 +148,7 @@ export default function UploadPage() {
   const handleIdentify = useCallback(async () => {
     if (!selectedImage || isSubmitting) return;
     setIsSubmitting(true);
+    const runStartedAt = Date.now();
 
     try {
       const response = await fetch('/api/coze/workflow1', {
@@ -162,6 +164,12 @@ export default function UploadPage() {
       try {
         result = (await response.json()) as Workflow1RouteResponse;
       } catch {
+        appendCozeRun(1, {
+          time: new Date().toISOString(),
+          stage: 'error',
+          error: '识别服务返回异常（响应不是合法 JSON）',
+          workflow_ms: Date.now() - runStartedAt,
+        });
         showError('识别服务返回异常，请稍后重试');
         return;
       }
@@ -171,6 +179,12 @@ export default function UploadPage() {
         const message = !result.success && result.error
           ? result.error
           : '图片识别失败，请稍后重试';
+        appendCozeRun(1, {
+          time: new Date().toISOString(),
+          stage: 'error',
+          error: message,
+          workflow_ms: Date.now() - runStartedAt,
+        });
         showError(message);
         return;
       }
@@ -208,9 +222,23 @@ export default function UploadPage() {
       }
 
       // 目标热量同时放 URL query，作为 sessionStorage 之外的双保险
+      appendCozeRun(1, {
+        time: new Date().toISOString(),
+        stage: 'success',
+        upload_ms: result.upload_ms,
+        workflow_ms: result.workflow_ms,
+        ...(result.execute_id ? { execute_id: result.execute_id } : {}),
+        ...(result.debug_url ? { debug_url: result.debug_url } : {}),
+      });
       const query = `?daily_target_kcal=${encodeURIComponent(dailyTargetKcal)}`;
       router.push(`/confirm${query}`);
     } catch {
+      appendCozeRun(1, {
+        time: new Date().toISOString(),
+        stage: 'error',
+        error: '网络异常，图片识别失败',
+        workflow_ms: Date.now() - runStartedAt,
+      });
       showError('网络异常，图片识别失败，请稍后重试');
     } finally {
       setIsSubmitting(false);

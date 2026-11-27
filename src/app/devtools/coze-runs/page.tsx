@@ -1,52 +1,23 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
+'use client';
+
+import { useEffect, useState } from 'react';
+import {
+  clearCozeRuns,
+  loadCozeRuns,
+  type CozeRunRecord,
+} from '@/lib/coze-runs';
 
 /**
  * 开发者专用调试页（不在任何用户流程内、robots 已禁止抓取）。
- * 分区读取服务端每次调用的追加记录：
- *   - workflow1-runs.jsonl：工作流 1（识别）
- *   - workflow2-runs.jsonl：工作流 2（计算）
+ * 数据源：本浏览器的 localStorage（calorie_coze_runs_v1）——
+ * 服务端 jsonl 依赖可写文件系统，在 Vercel 等 Serverless 环境不可用，
+ * 故改为前端在每次 workflow1/2 调用完成后记录元信息，本页从浏览器读取。
  * 只展示元信息，不含 Token、图片、菜品或计算结果。
  */
 
-export const dynamic = 'force-dynamic'; // 每次访问都读最新日志，不缓存
-
-interface RunRecord {
-  time: string;
-  stage: 'success' | 'error';
-  error?: string;
-  // 工作流 1 分阶段耗时
-  upload_ms?: number;
-  workflow_ms?: number;
-  // 工作流 2 总耗时
-  elapsed_ms?: number;
-  // 两者共有元信息
-  code?: number;
-  msg?: string;
-  execute_id?: string;
-  debug_url?: string;
-}
-
-function loadRecords(file: string): RunRecord[] {
-  const full = path.join(process.cwd(), file);
-  try {
-    const text = readFileSync(full, 'utf8');
-    return text
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith('{'))
-      .map((line) => {
-        try {
-          return JSON.parse(line) as RunRecord;
-        } catch {
-          return null;
-        }
-      })
-      .filter((r): r is RunRecord => r !== null)
-      .reverse(); // 最新在前
-  } catch {
-    return [];
-  }
+interface RunsStore {
+  wf1: CozeRunRecord[];
+  wf2: CozeRunRecord[];
 }
 
 function fmtMs(ms?: number): string {
@@ -69,7 +40,7 @@ const CARD = {
   padding: '16px 18px',
 };
 
-function RecordCard({ r, kind }: { r: RunRecord; kind: 1 | 2 }) {
+function RecordCard({ r, kind }: { r: CozeRunRecord; kind: 1 | 2 }) {
   const failed = r.stage === 'error' || (typeof r.code === 'number' && r.code !== 0);
   const total =
     kind === 1
@@ -137,7 +108,7 @@ function Section({
   title: string;
   source: string;
   hint: string;
-  records: RunRecord[];
+  records: CozeRunRecord[];
   kind: 1 | 2;
 }) {
   return (
@@ -172,8 +143,18 @@ function Section({
 }
 
 export default function CozeRunsPage() {
-  const wf1 = loadRecords('workflow1-runs.jsonl');
-  const wf2 = loadRecords('workflow2-runs.jsonl');
+  /** 首帧渲染空态，挂载后从本浏览器读取，避免 SSR 与 localStorage 不同步 */
+  const [runs, setRuns] = useState<RunsStore>({ wf1: [], wf2: [] });
+
+  useEffect(() => {
+    const store = loadCozeRuns();
+    setRuns({ wf1: store.wf1, wf2: store.wf2 });
+  }, []);
+
+  const handleClear = () => {
+    clearCozeRuns();
+    setRuns({ wf1: [], wf2: [] });
+  };
 
   return (
     <div
@@ -190,22 +171,42 @@ export default function CozeRunsPage() {
         <h1 style={{ fontSize: 20, marginBottom: 6 }}>
           Coze 工作流调用记录（开发者专用）
         </h1>
-        <p style={{ fontSize: 12, color: '#63706a', marginBottom: 28 }}>
+        <p style={{ fontSize: 12, color: '#63706a', marginBottom: 8 }}>
           调试链接由 Coze 生成，有效期 7 天 ｜ 此页不在用户流程中、robots 已禁止抓取
+        </p>
+        <p style={{ fontSize: 12, color: '#63706a', marginBottom: 20 }}>
+          记录保存在当前浏览器（localStorage），换浏览器或清除站点数据后不互通；
+          记录上限每个工作流 50 条，超出自动淘汰最旧。
+          <button
+            type="button"
+            onClick={handleClear}
+            style={{
+              marginLeft: 10,
+              fontSize: 12,
+              color: '#b42318',
+              background: 'transparent',
+              border: '1px solid #e2b4b0',
+              borderRadius: 6,
+              padding: '2px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            清空记录
+          </button>
         </p>
 
         <Section
           title="工作流 1 · 图片识别"
-          source="workflow1-runs.jsonl"
+          source="浏览器 localStorage"
           hint="每次「开始识别」成功追加一条，含图片上传与工作流分阶段耗时"
-          records={wf1}
+          records={runs.wf1}
           kind={1}
         />
         <Section
           title="工作流 2 · 热量计算"
-          source="workflow2-runs.jsonl"
+          source="浏览器 localStorage"
           hint="每次「确认并计算」追加一条，含返回码、耗时与调试链接"
-          records={wf2}
+          records={runs.wf2}
           kind={2}
         />
       </div>
